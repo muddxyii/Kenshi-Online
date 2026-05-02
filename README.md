@@ -1,44 +1,58 @@
 # Kenshi-Online
 
-**16-player co-op multiplayer mod for Kenshi**
+**Co-op multiplayer for Kenshi, with a native in-game multiplayer menu and dedicated server support.**
 
-Kenshi-Online adds seamless multiplayer to Kenshi using native MyGUI integration, ENet networking, and Ogre plugin injection. Players can explore, fight, build, and trade together in the open world of Kenshi.
+Kenshi-Online adds multiplayer through an Ogre plugin loaded by Kenshi, ENet networking, and native MyGUI layouts. Players can join a host, chat, see other players, and sync world state without building the project from source.
 
-## Features
+## Packages
 
-- **Up to 16 players** on a single server
-- **Dedicated server** with persistence and console commands
-- **Master server** with centralized server browser (auto-discovery)
-- **Full network replication** - characters, NPCs, combat, buildings, items
-- **Zone-based sync** - efficient bandwidth usage with interest management
-- **Server-authoritative** combat and world state
-- **Native MyGUI HUD** - status bar, chat with timestamps, player list, debug log
-- **Client commands** - `/tp`, `/time`, `/kick`, `/announce`, `/connect`, `/disconnect`, `/pos`, `/players`, `/status`, `/entities`, `/ping`, `/debug`, `/help`
-- **Just launch and play** - Ogre plugin injection, no manual setup
+If you are playing, use one of the prebuilt zips from a release or from whoever built the mod. You do not need the source tree.
 
-## Architecture
+Use the zip that matches what you want to do:
 
-```
-KenshiMP.Injector.exe    -> Modifies Plugins_x64.cfg, launches Kenshi
-KenshiMP.Core.dll        -> Loaded by Ogre as a plugin, hooks game functions
-KenshiMP.Server.exe      -> Dedicated server (host on VPS or locally)
-KenshiMP.MasterServer.exe-> Centralized server browser registry (port 27801)
-KenshiMP.Common.lib      -> Shared types, protocol, serialization
-KenshiMP.Scanner.lib     -> Pattern scanning, MinHook wrapper
+| Package | Use this if you want to... | Includes |
+|---------|-----------------------------|----------|
+| `KenshiMP-Player.zip` | Join someone else's game | Client plugin, installer, multiplayer button/layouts, mod files |
+| `KenshiMP-Host.zip` | Play and host from the same PC | Player package plus `KenshiMP.Server.exe` and `server.json` |
+| `KenshiMP-Server.zip` | Run a standalone dedicated server | Server executable and config only |
+
+Developers can create these zips locally with `package-release.bat`; they are written to:
+
+```text
+packages\
 ```
 
-## Quick Start
+## Install For Players
 
-### Player
-1. Build the solution (see Building below)
-2. Run `KenshiMP.Injector.exe`
-3. Set your player name and server address
-4. Click **PLAY**
-5. Kenshi launches with multiplayer enabled
+1. Extract `KenshiMP-Player.zip`.
+2. Run `install.bat`.
+3. If the installer cannot find Kenshi, point it at the folder containing `kenshi_x64.exe`.
+4. Launch Kenshi normally.
+5. Click `MULTIPLAYER`, then `JOIN GAME`.
+6. Enter the host address and port.
 
-### Server (Local or VPS)
-1. Copy `KenshiMP.Server.exe` to your VPS
-2. Create `server.json` (or let it generate defaults):
+The default game port is UDP `27800`.
+
+## Hosting
+
+### Host From Your PC
+
+1. Extract `KenshiMP-Host.zip`.
+2. Run `install.bat`.
+3. Launch Kenshi normally.
+4. Click `MULTIPLAYER`, then `HOST GAME`.
+5. Share your address with friends.
+
+The server tries UPnP automatically. If UPnP works, the server log prints the external address friends can use. If UPnP does not work, forward UDP `27800` to your PC or use a tunnel such as playit.gg.
+
+### Dedicated Server
+
+1. Extract `KenshiMP-Server.zip`.
+2. Edit `server.json` if needed.
+3. Run `KenshiMP.Server.exe`.
+
+Example config:
+
 ```json
 {
   "serverName": "My Kenshi Server",
@@ -48,223 +62,185 @@ KenshiMP.Scanner.lib     -> Pattern scanning, MinHook wrapper
   "gameSpeed": 1.0
 }
 ```
-3. Run: `./KenshiMP.Server.exe`
-4. Forward port **27800 UDP** on your router/firewall
-5. Players connect via your IP address or the server browser
 
 ### Server Commands
-```
-status   - Show server info
-players  - List connected players
-kick <id> - Kick a player
-say <msg> - Broadcast system message
-save     - Save world state
-stop     - Shutdown server
+
+```text
+status      Show server info
+players     List connected players
+kick <id>   Kick a player
+say <msg>   Broadcast a system message
+save        Save world state
+stop        Shut down the server
 ```
 
-## Building
+### Master Server
+
+The server can register with a master server for browser discovery. Direct joins still work even if master-server registration fails.
+
+To disable registration, set this in `server.json`:
+
+```json
+"masterServer": ""
+```
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `F1` | Open or close the multiplayer menu |
+| `Enter` | Open or close chat |
+| `Tab` | Toggle player list |
+| `Insert` | Toggle debug/loading log |
+| `` ` `` | Toggle debug info |
+| `Escape` | Close multiplayer panels |
+
+## Features
+
+- Up to 16 players on one server.
+- Dedicated server with persistence and console commands.
+- Native Kenshi/MyGUI multiplayer menu, HUD, chat, and player list.
+- ENet UDP networking on port `27800`.
+- Server-authoritative combat and world state.
+- Zone-based synchronization for nearby entities.
+- Optional master-server browser registration.
+
+## Building From Source
 
 ### Requirements
-- **Visual Studio 2022** (or 2019) with **Desktop development with C++** workload
-- **CMake 3.20+** ([download](https://cmake.org/download/) or `winget install Kitware.CMake`)
-- **Git** (for submodules)
 
-No vcpkg needed -- all dependencies are bundled as git submodules.
+- Visual Studio 2022, or Visual Studio 2019, with the **Desktop development with C++** workload.
+- CMake 3.20+.
+- Git.
+
+No vcpkg is required. Third-party dependencies are vendored directly in `lib/`, so a normal clone has everything required to build.
 
 ### One-Click Build
 
-```bash
-git clone --recursive https://github.com/muddxyii/Kenshi-Online.git
+```bat
+git clone https://github.com/muddxyii/Kenshi-Online.git
 cd Kenshi-Online
 build.bat
 ```
 
-That's it for most Steam installs. `build.bat` detects your Visual Studio version, finds Kenshi in common Steam library folders, configures CMake, builds all targets, and runs unit tests.
+`build.bat` detects Visual Studio, finds common Steam Kenshi install folders, configures CMake, builds Release, and runs unit tests.
 
-If Kenshi is installed somewhere custom, pass the folder that contains `kenshi_x64.exe`:
+If Kenshi is installed somewhere custom, pass the folder containing `kenshi_x64.exe`:
 
-```bash
+```bat
 build.bat "D:\SteamLibrary\steamapps\common\Kenshi"
 ```
 
-You can also set `KENSHI_DIR` for the current terminal before building:
+Or set `KENSHI_DIR` for the current terminal:
 
-```bash
+```bat
 set KENSHI_DIR=D:\SteamLibrary\steamapps\common\Kenshi
 build.bat
 ```
 
-### Open in Visual Studio
+### Manual Build
 
-**Option A -- CMake native (recommended):**
-1. Open Visual Studio 2022
-2. File > Open > CMake...
-3. Select `CMakeLists.txt` in the project root
-4. VS reads `CMakePresets.json` and configures automatically
-5. Select **x64-release** preset from the toolbar
-6. Build > Build All (Ctrl+Shift+B)
-
-**Option B -- Solution file:**
-```bash
-cmake -B build -G "Visual Studio 17 2022" -A x64
-start build\KenshiMP.sln
-```
-Set configuration to **Release** and build.
-
-### Manual (Command Line)
-
-```bash
-# Clone with submodules
-git clone --recursive https://github.com/muddxyii/Kenshi-Online.git
+```bat
+git clone https://github.com/muddxyii/Kenshi-Online.git
 cd Kenshi-Online
-
-# If you forgot --recursive:
-git submodule update --init --recursive
-
-# Configure
 cmake -B build -G "Visual Studio 17 2022" -A x64 -DKENSHI_DIR:PATH="D:\SteamLibrary\steamapps\common\Kenshi"
-
-# Build
 cmake --build build --config Release
-
-# Run tests
 build\bin\Release\KenshiMP.UnitTest.exe
 ```
 
-### Output
+### Build Output
 
-```
-build/bin/Release/
-    KenshiMP.Core.dll           # Client plugin (auto-deployed to Kenshi dir)
-    KenshiMP.Server.exe         # Dedicated server (auto-deployed to Kenshi dir)
-    KenshiMP.Injector.exe       # Launcher / installer
-    KenshiMP.MasterServer.exe   # Server browser registry
-    KenshiMP.TestClient.exe     # Fake player for testing
+```text
+build\bin\Release\
+    KenshiMP.Core.dll
+    KenshiMP.Server.exe
+    KenshiMP.Injector.exe
+    KenshiMP.MasterServer.exe
+    KenshiMP.TestClient.exe
     KenshiMP.IntegrationTest.exe
     KenshiMP.UnitTest.exe
 ```
 
-### Release Packages
+### Create Release Packages
 
-After a Release build, create friend-friendly zip files:
+After a successful Release build:
 
-```bash
+```bat
 package-release.bat
 ```
 
 This creates:
 
+```text
+packages\
+    KenshiMP-Player.zip
+    KenshiMP-Host.zip
+    KenshiMP-Server.zip
 ```
-packages/
-    KenshiMP-Player.zip   # Join games; installs the MULTIPLAYER button/plugin
-    KenshiMP-Server.zip   # Dedicated server only
-    KenshiMP-Host.zip     # Player files plus server exe for HOST GAME
+
+Do not commit `build\` or `packages\`; both are generated.
+
+## Developer Notes
+
+### Architecture
+
+```text
+KenshiMP.Injector.exe     Modifies Plugins_x64.cfg and launches Kenshi
+KenshiMP.Core.dll         Ogre plugin loaded by Kenshi
+KenshiMP.Server.exe       Dedicated server
+KenshiMP.MasterServer.exe Optional server browser registry
+KenshiMP.Common.lib       Shared protocol, config, serialization
+KenshiMP.Scanner.lib      Pattern scanning and hook helpers
 ```
 
-Players should use `KenshiMP-Player.zip`. Hosts who want the in-game `HOST GAME` button should use `KenshiMP-Host.zip`. VPS or standalone hosts should use `KenshiMP-Server.zip`.
+### Project Structure
 
-### Dependencies (bundled as submodules in `lib/`)
-- [ENet 1.3.x](https://github.com/lsalzman/enet) -- reliable UDP networking
-- [MinHook 1.3.3](https://github.com/TsudaKageyu/minhook) -- x64 API hooking
-- [nlohmann/json](https://github.com/nlohmann/json) -- JSON for C++
-- [spdlog](https://github.com/gabime/spdlog) -- fast logging
-- [Dear ImGui](https://github.com/ocornut/imgui) -- debug overlay (optional)
+```text
+KenshiMP.Common\       Shared protocol/types/config
+KenshiMP.Scanner\      Pattern scanning and MinHook wrapper
+KenshiMP.Core\         Kenshi plugin, hooks, UI, networking, sync
+KenshiMP.Server\       Dedicated server and UPnP
+KenshiMP.MasterServer\ Server browser registry
+KenshiMP.Injector\     Win32 launcher/installer
+dist\                  Package assets, layouts, install scripts, docs
+lib\                   Vendored third-party dependencies
+```
 
-## Controls (In-Game)
+### Networking
 
-| Key | Action |
-|-----|--------|
-| F1 | Open/close multiplayer menu |
-| Insert | Toggle debug/loading log panel |
-| Enter | Open/close chat |
-| Tab | Toggle player list |
-| ` (backtick) | Toggle debug info |
-| Escape | Close all panels |
-
-## Network Protocol
-
-- **Port**: 27800 UDP (ENet)
-- **Channels**: 3 (reliable ordered, reliable unordered, unreliable sequenced)
-- **Tick Rate**: 20 Hz (50ms)
-- **Max Players**: 16
+- Protocol: ENet over UDP.
+- Default port: `27800`.
+- Tick rate: 20 Hz.
+- Max players: 16.
+- Channels: reliable ordered, reliable unordered, unreliable sequenced.
 
 ### Synced State
-- Player character positions, rotations, animations
-- NPC positions and AI states (zone-based)
-- Combat: attacks, damage, deaths, knockouts
-- Buildings: placement, construction, destruction
-- Items: pickup, drop, inventory transfers
-- Time of day, weather, game speed
-- Chat messages
 
-## Project Structure
-
-```
-KenshiMP/
-+-- KenshiMP.Common/          # Shared library
-|   +-- include/kmp/
-|       +-- types.h           # Vec3, Quat, EntityID, ZoneCoord
-|       +-- constants.h       # Tick rate, max players, port
-|       +-- messages.h        # Network message structs
-|       +-- protocol.h        # Packet reader/writer
-|       +-- compression.h     # Delta compression
-|       +-- config.h          # Client/server config
-|
-+-- KenshiMP.Scanner/         # Pattern scanner library
-|   +-- include/kmp/
-|       +-- scanner.h         # IDA-style pattern matching
-|       +-- patterns.h        # Known Kenshi signatures
-|       +-- memory.h          # Safe memory read/write
-|       +-- hook_manager.h    # MinHook wrapper
-|
-+-- KenshiMP.Core/            # Ogre plugin DLL
-|   +-- dllmain.cpp           # Plugin entry
-|   +-- core.cpp              # Master initialization
-|   +-- hooks/                # Game function hooks (14 modules)
-|   +-- game/                 # Reconstructed game types
-|   +-- net/                  # ENet client
-|   +-- sync/                 # Entity registry, interpolation
-|   +-- ui/                   # Native MyGUI overlay + menu
-|
-+-- KenshiMP.Server/          # Dedicated server
-|   +-- main.cpp              # Console entry + commands
-|   +-- server.cpp            # Game state, networking
-|
-+-- KenshiMP.MasterServer/    # Server browser registry
-|   +-- main.cpp              # ENet master server (port 27801)
-|
-+-- KenshiMP.Injector/        # Launcher
-    +-- main.cpp              # Win32 GUI
-    +-- injector.cpp          # Plugins_x64.cfg modifier
-    +-- process.cpp           # Game launcher
-```
-
-## Technical Details
+- Player positions, rotations, animations, and names.
+- NPC positions and zone-based AI state.
+- Combat events, damage, deaths, and knockouts.
+- Buildings, items, time, weather, game speed, and chat.
 
 ### Injection Method
-Uses the Ogre3D plugin system (proven by RE_Kenshi). The injector modifies
-`Plugins_x64.cfg` to add `Plugin=KenshiMP.Core`, and Ogre loads our DLL
-automatically during engine initialization. No process injection or manual
-DLL loading required.
 
-### Pattern Scanner
-Scans kenshi_x64.exe in-memory using IDA-style byte patterns with wildcards.
-Resolves RIP-relative addresses for x64 code. Falls back to known pointer chains
-from Cheat Engine community.
+Kenshi-Online uses Kenshi's Ogre3D plugin system. The installer adds `Plugin=KenshiMP.Core` to `Plugins_x64.cfg`, then Ogre loads `KenshiMP.Core.dll` during startup. No process injection is required.
 
-### State Synchronization
-- **Entity ownership**: Each player owns their squad; server owns NPCs
-- **Interpolation**: 100ms buffer with hermite spline for smooth remote movement
-- **Zone interest**: 3x3 zone grid around each player (only sync nearby entities)
-- **Delta compression**: float16 position deltas, smallest-three quaternion encoding
+### Dependencies
+
+- [ENet](https://github.com/lsalzman/enet) - UDP networking.
+- [MinHook](https://github.com/TsudaKageyu/minhook) - x64 API hooking.
+- [nlohmann/json](https://github.com/nlohmann/json) - JSON for C++.
+- [spdlog](https://github.com/gabime/spdlog) - logging.
+- [Dear ImGui](https://github.com/ocornut/imgui) - debug tooling.
 
 ## Credits
 
-Built on community reverse engineering work:
-- [RE_Kenshi](https://github.com/BFrizzleFoShizzle/RE_Kenshi) - Ogre plugin injection system
-- [KenshiLib](https://github.com/KenshiReclaimer/KenshiLib) - Game structure definitions
-- [Kenshi Online](https://github.com/The404Studios/Kenshi-Online) - Memory addresses reference
-- [OpenConstructionSet](https://github.com/lmaydev/OpenConstructionSet) - Game data SDK
+Built on community reverse-engineering work:
+
+- [RE_Kenshi](https://github.com/BFrizzleFoShizzle/RE_Kenshi) - Ogre plugin injection approach.
+- [KenshiLib](https://github.com/KenshiReclaimer/KenshiLib) - game structure definitions.
+- [Kenshi Online](https://github.com/The404Studios/Kenshi-Online) - original project and memory-address reference.
+- [OpenConstructionSet](https://github.com/lmaydev/OpenConstructionSet) - game data SDK.
 
 ## License
 
