@@ -6,6 +6,10 @@ x64/
 Debug/
 Release/
 
+# Vendored dependency project files that intentionally live under a build folder
+!lib/minhook/build/
+!lib/minhook/build/**
+
 # Visual Studio
 .vs/
 *.user
@@ -29,6 +33,25 @@ CMakeSettings.json
 *.ilk
 *.obj
 *.o
+*.res
+*.tlog
+*.recipe
+*.lastbuildstate
+
+# Vendored prebuilt libraries that are intentionally checked in
+!lib/imgui/examples/libs/glfw/lib-vc2010-32/glfw3.lib
+!lib/imgui/examples/libs/glfw/lib-vc2010-64/glfw3.lib
+
+# Runtime output and local game state
+*.log
+*.kmpsave
+settings.cfg
+*.bak
+
+# Local tool settings and scratch notes
+.claude/settings.local.json
+for the project.txt
+open the build folder.txt
 
 # OS files
 Thumbs.db
