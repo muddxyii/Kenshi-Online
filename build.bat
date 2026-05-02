@@ -7,16 +7,27 @@ echo   KenshiMP / Kenshi-Online Build Script
 echo  ========================================
 echo.
 
-:: Check Kenshi install directory
-set "KENSHI_DIR=%~1"
-if "%KENSHI_DIR%"=="" set "KENSHI_DIR=U:\SteamLibrary\steamapps\common\Kenshi"
+:: Check Kenshi install directory. Order:
+::   1. First argument: build.bat "D:\SteamLibrary\steamapps\common\Kenshi"
+::   2. KENSHI_DIR environment variable
+::   3. Common Steam install locations on local drives
+if /I "%~1"=="/?" goto :usage
+if /I "%~1"=="-h" goto :usage
+if /I "%~1"=="--help" goto :usage
 
+set "ENV_KENSHI_DIR=%KENSHI_DIR%"
+set "KENSHI_DIR="
+if not "%~1"=="" (
+    call :use_kenshi_dir "%~1"
+) else if defined ENV_KENSHI_DIR (
+    call :use_kenshi_dir "%ENV_KENSHI_DIR%"
+) else (
+    call :detect_kenshi_dir
+)
+
+if not defined KENSHI_DIR goto :kenshi_missing
 if exist "%KENSHI_DIR%\kenshi_x64.exe" goto :kenshi_ok
-echo [ERROR] Kenshi install not found or invalid:
-echo         %KENSHI_DIR%
-echo.
-echo         Usage: build.bat "U:\SteamLibrary\steamapps\common\Kenshi"
-goto :fail
+goto :kenshi_missing
 
 :kenshi_ok
 echo [OK] Kenshi directory: %KENSHI_DIR%
@@ -70,7 +81,7 @@ if exist "build\CMakeCache.txt" (
     )
 )
 
-cmake -G "%VS_GEN%" -A x64 -S . -B build -DKENSHI_DIR="%KENSHI_DIR%"
+cmake -G "%VS_GEN%" -A x64 -S . -B build -DKENSHI_DIR:PATH="%KENSHI_DIR%"
 if errorlevel 1 (
     echo [ERROR] CMake configure failed.
     goto :fail
@@ -112,6 +123,56 @@ echo    build\KenshiMP.sln
 echo.
 goto :end
 
+:usage
+echo Usage:
+echo   build.bat
+echo   build.bat "C:\Program Files (x86)\Steam\steamapps\common\Kenshi"
+echo.
+echo Optional:
+echo   set KENSHI_DIR=C:\Games\SteamLibrary\steamapps\common\Kenshi
+echo   build.bat
+echo.
+exit /b 0
+
+:kenshi_missing
+echo [ERROR] Kenshi install not found.
+echo.
+echo         I looked for kenshi_x64.exe in the path you provided, the KENSHI_DIR
+echo         environment variable, and common Steam library folders.
+echo.
+echo         Run this with your Kenshi install folder:
+echo           build.bat "C:\Program Files (x86)\Steam\steamapps\common\Kenshi"
+echo.
+echo         Or set it once for this terminal:
+echo           set KENSHI_DIR=C:\Games\SteamLibrary\steamapps\common\Kenshi
+echo           build.bat
+goto :fail
+
+:use_kenshi_dir
+for %%I in ("%~1") do set "KENSHI_DIR=%%~fI"
+exit /b 0
+
+:try_kenshi_dir
+if exist "%~1\kenshi_x64.exe" (
+    call :use_kenshi_dir "%~1"
+    exit /b 0
+)
+exit /b 1
+
+:detect_kenshi_dir
+call :try_kenshi_dir "%ProgramFiles(x86)%\Steam\steamapps\common\Kenshi"
+if defined KENSHI_DIR exit /b 0
+call :try_kenshi_dir "%ProgramFiles%\Steam\steamapps\common\Kenshi"
+if defined KENSHI_DIR exit /b 0
+
+for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
+    call :try_kenshi_dir "%%D:\SteamLibrary\steamapps\common\Kenshi"
+    if defined KENSHI_DIR exit /b 0
+    call :try_kenshi_dir "%%D:\Steam\steamapps\common\Kenshi"
+    if defined KENSHI_DIR exit /b 0
+)
+exit /b 1
+
 :fail
 echo.
 echo  BUILD FAILED - see errors above.
@@ -120,3 +181,4 @@ exit /b 1
 
 :end
 endlocal
+exit /b 0

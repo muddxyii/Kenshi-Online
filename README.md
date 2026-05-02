@@ -79,7 +79,20 @@ cd Kenshi-Online
 build.bat
 ```
 
-That's it. `build.bat` detects your Visual Studio version, configures CMake, builds all targets, and runs unit tests.
+That's it for most Steam installs. `build.bat` detects your Visual Studio version, finds Kenshi in common Steam library folders, configures CMake, builds all targets, and runs unit tests.
+
+If Kenshi is installed somewhere custom, pass the folder that contains `kenshi_x64.exe`:
+
+```bash
+build.bat "D:\SteamLibrary\steamapps\common\Kenshi"
+```
+
+You can also set `KENSHI_DIR` for the current terminal before building:
+
+```bash
+set KENSHI_DIR=D:\SteamLibrary\steamapps\common\Kenshi
+build.bat
+```
 
 ### Open in Visual Studio
 
@@ -109,7 +122,7 @@ cd Kenshi-Online
 git submodule update --init --recursive
 
 # Configure
-cmake -B build -G "Visual Studio 17 2022" -A x64
+cmake -B build -G "Visual Studio 17 2022" -A x64 -DKENSHI_DIR:PATH="D:\SteamLibrary\steamapps\common\Kenshi"
 
 # Build
 cmake --build build --config Release
