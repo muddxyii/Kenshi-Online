@@ -24,7 +24,8 @@ target_link_libraries(KenshiMP.Server PRIVATE
 )
 
 # Copy server exe to Kenshi directory so the Host button can find it
-get_filename_component(KENSHI_DIR "${CMAKE_SOURCE_DIR}/.." ABSOLUTE)
+set(KENSHI_DIR "${CMAKE_SOURCE_DIR}/.." CACHE PATH "Path to Kenshi install directory")
+get_filename_component(KENSHI_DIR "${KENSHI_DIR}" ABSOLUTE)
 if(EXISTS "${KENSHI_DIR}/kenshi_x64.exe")
     add_custom_command(TARGET KenshiMP.Server POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -32,4 +33,6 @@ if(EXISTS "${KENSHI_DIR}/kenshi_x64.exe")
             "${KENSHI_DIR}/KenshiMP.Server.exe"
         COMMENT "Copying KenshiMP.Server.exe to Kenshi directory"
     )
+else()
+    message(WARNING "KENSHI_DIR does not contain kenshi_x64.exe: ${KENSHI_DIR}. Skipping KenshiMP.Server auto-deploy.")
 endif()

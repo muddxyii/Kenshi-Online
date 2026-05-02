@@ -4,8 +4,8 @@
 
 namespace kmp {
 
-// UPnP auto port mapping using Windows built-in COM API.
-// No external dependencies — uses IUPnPNAT / IStaticPortMappingCollection.
+// UPnP auto port mapping using direct IGD/UPnP discovery.
+// No external dependencies: SSDP discovery plus SOAP over HTTP.
 
 class UPnPMapper {
 public:
@@ -30,6 +30,8 @@ private:
     bool m_mapped = false;
     uint16_t m_mappedPort = 0;
     std::string m_mappedProtocol;
+    std::string m_controlUrl;
+    std::string m_serviceType;
 };
 
 } // namespace kmp
