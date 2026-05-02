@@ -1,10 +1,12 @@
 # Build output
 build/
 build-debug/
+packages/
 out/
 x64/
 Debug/
 Release/
+*.zip
 
 # Vendored dependency project files that intentionally live under a build folder
 !lib/minhook/build/

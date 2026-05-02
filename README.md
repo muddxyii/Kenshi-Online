@@ -144,6 +144,25 @@ build/bin/Release/
     KenshiMP.UnitTest.exe
 ```
 
+### Release Packages
+
+After a Release build, create friend-friendly zip files:
+
+```bash
+package-release.bat
+```
+
+This creates:
+
+```
+packages/
+    KenshiMP-Player.zip   # Join games; installs the MULTIPLAYER button/plugin
+    KenshiMP-Server.zip   # Dedicated server only
+    KenshiMP-Host.zip     # Player files plus server exe for HOST GAME
+```
+
+Players should use `KenshiMP-Player.zip`. Hosts who want the in-game `HOST GAME` button should use `KenshiMP-Host.zip`. VPS or standalone hosts should use `KenshiMP-Server.zip`.
+
 ### Dependencies (bundled as submodules in `lib/`)
 - [ENet 1.3.x](https://github.com/lsalzman/enet) -- reliable UDP networking
 - [MinHook 1.3.3](https://github.com/TsudaKageyu/minhook) -- x64 API hooking
