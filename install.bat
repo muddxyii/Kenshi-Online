@@ -13,14 +13,6 @@ if not "%~1"=="" (
 )
 for %%I in ("%KENSHI_DIR%") do set "KENSHI_DIR=%%~fI"
 
-set "BUILD_DLL=%~dp0build\bin\Release\KenshiMP.Core.dll"
-set "BUILD_SERVER=%~dp0build\bin\Release\KenshiMP.Server.exe"
-set "MOD_SRC=%~dp0dist\kenshi-online.mod"
-set PLUGINS_CFG=%KENSHI_DIR%\Plugins_x64.cfg
-set MAIN_MENU_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MainMenu.layout
-set MP_PANEL_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MultiplayerPanel.layout
-set MOD_LIST=%KENSHI_DIR%\data\__mods.list
-
 echo ============================================
 echo  KenshiMP Install
 echo ============================================
@@ -28,10 +20,24 @@ echo.
 
 if not exist "%KENSHI_DIR%\kenshi_x64.exe" (
     echo [!] Kenshi not found at: %KENSHI_DIR%
-    echo     Run install.bat with your Kenshi folder:
-    echo     install.bat "D:\SteamLibrary\steamapps\common\Kenshi"
+    call :prompt_kenshi_dir
+)
+
+if not exist "%KENSHI_DIR%\kenshi_x64.exe" (
+    echo [!] Kenshi install not found.
+    echo     Run install.bat again and paste the folder when prompted.
     goto :done
 )
+
+echo [OK] Kenshi directory: %KENSHI_DIR%
+
+set "BUILD_DLL=%~dp0build\bin\Release\KenshiMP.Core.dll"
+set "BUILD_SERVER=%~dp0build\bin\Release\KenshiMP.Server.exe"
+set "MOD_SRC=%~dp0dist\kenshi-online.mod"
+set PLUGINS_CFG=%KENSHI_DIR%\Plugins_x64.cfg
+set MAIN_MENU_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MainMenu.layout
+set MP_PANEL_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MultiplayerPanel.layout
+set MOD_LIST=%KENSHI_DIR%\data\__mods.list
 
 :: 1. Copy DLL to Kenshi root
 if exist "%BUILD_DLL%" (
@@ -104,3 +110,21 @@ echo  Done. Launch Kenshi to play!
 echo ============================================
 :done
 pause
+exit /b 0
+
+:prompt_kenshi_dir
+echo.
+echo [INPUT] Paste your Kenshi install folder.
+echo         Example: D:\SteamLibrary\steamapps\common\Kenshi
+set "USER_KENSHI_DIR="
+set /P "USER_KENSHI_DIR=Kenshi folder: "
+if not defined USER_KENSHI_DIR (
+    set "KENSHI_DIR="
+    exit /b 1
+)
+set "USER_KENSHI_DIR=%USER_KENSHI_DIR:"=%"
+for %%I in ("%USER_KENSHI_DIR%") do set "KENSHI_DIR=%%~fI"
+if exist "%KENSHI_DIR%\kenshi_x64.exe" exit /b 0
+echo [WARN] That folder does not contain kenshi_x64.exe.
+set "KENSHI_DIR="
+exit /b 1

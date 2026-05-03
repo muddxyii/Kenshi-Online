@@ -12,6 +12,7 @@ echo.
 ::   1. First argument: build.bat "D:\SteamLibrary\steamapps\common\Kenshi"
 ::   2. KENSHI_DIR environment variable
 ::   3. Common Steam install locations on local drives
+::   4. Interactive prompt
 if /I "%~1"=="/?" goto :usage
 if /I "%~1"=="-h" goto :usage
 if /I "%~1"=="--help" goto :usage
@@ -26,7 +27,10 @@ if not "%~1"=="" (
     call :detect_kenshi_dir
 )
 
-if not defined KENSHI_DIR goto :kenshi_missing
+if not defined KENSHI_DIR call :prompt_kenshi_dir
+if exist "%KENSHI_DIR%\kenshi_x64.exe" goto :kenshi_ok
+echo [WARN] Kenshi not found at: %KENSHI_DIR%
+call :prompt_kenshi_dir
 if exist "%KENSHI_DIR%\kenshi_x64.exe" goto :kenshi_ok
 goto :kenshi_missing
 
@@ -141,6 +145,8 @@ echo Optional:
 echo   set KENSHI_DIR=C:\Games\SteamLibrary\steamapps\common\Kenshi
 echo   build.bat
 echo.
+echo If no valid Kenshi folder is found, the script will ask you to paste one.
+echo.
 exit /b 0
 
 :kenshi_missing
@@ -155,11 +161,30 @@ echo.
 echo         Or set it once for this terminal:
 echo           set KENSHI_DIR=C:\Games\SteamLibrary\steamapps\common\Kenshi
 echo           build.bat
+echo.
+echo         You can also rerun build.bat and paste the folder when prompted.
 goto :fail
 
 :use_kenshi_dir
 for %%I in ("%~1") do set "KENSHI_DIR=%%~fI"
 exit /b 0
+
+:prompt_kenshi_dir
+echo.
+echo [INPUT] Paste your Kenshi install folder.
+echo         Example: D:\SteamLibrary\steamapps\common\Kenshi
+set "USER_KENSHI_DIR="
+set /P "USER_KENSHI_DIR=Kenshi folder: "
+if not defined USER_KENSHI_DIR (
+    set "KENSHI_DIR="
+    exit /b 1
+)
+set "USER_KENSHI_DIR=%USER_KENSHI_DIR:"=%"
+call :use_kenshi_dir "%USER_KENSHI_DIR%"
+if exist "%KENSHI_DIR%\kenshi_x64.exe" exit /b 0
+echo [WARN] That folder does not contain kenshi_x64.exe.
+set "KENSHI_DIR="
+exit /b 1
 
 :try_kenshi_dir
 if exist "%~1\kenshi_x64.exe" (
