@@ -54,15 +54,26 @@ static bool s_hasRemotePosition = false;
 static std::atomic<float> s_remoteGameSpeed{-1.f};
 
 // ── Faction string → character name mapping ──
+static std::string NormalizeFaction(std::string faction) {
+    const std::string modSuffix = ".mod";
+    if (faction.size() >= modSuffix.size() &&
+        faction.compare(faction.size() - modSuffix.size(), modSuffix.size(), modSuffix) == 0) {
+        faction.resize(faction.size() - modSuffix.size());
+    }
+    return faction;
+}
+
 static std::string FactionToOwnName(const std::string& faction) {
-    if (faction == "10-kenshi-online") return "Player 1";
-    if (faction == "12-kenshi-online") return "Player 2";
+    std::string normalized = NormalizeFaction(faction);
+    if (normalized == "10-kenshi-online") return "Player 1";
+    if (normalized == "12-kenshi-online") return "Player 2";
     return "";
 }
 
 static std::string FactionToOtherName(const std::string& faction) {
-    if (faction == "10-kenshi-online") return "Player 2";
-    if (faction == "12-kenshi-online") return "Player 1";
+    std::string normalized = NormalizeFaction(faction);
+    if (normalized == "10-kenshi-online") return "Player 2";
+    if (normalized == "12-kenshi-online") return "Player 1";
     return "";
 }
 
