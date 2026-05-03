@@ -1,5 +1,21 @@
 # Kenshi-Online
 
+> [!WARNING]
+> **Project Status: Archived / No Longer Maintained**
+>
+> This fork has been retired.
+>
+> **Reason**
+> - Upstream project is incomplete and not close to a usable state
+> - Continuing development would require more time than available
+>
+> **Changes made in this fork**
+> - Cleaned repository (removed legacy artifacts)
+> - Improved install/build scripts
+> - Replaced UPnP implementation
+>
+> No further updates, fixes, or support will be provided at this time.
+
 **Co-op multiplayer for Kenshi, with a native in-game multiplayer menu and dedicated server support.**
 
 Kenshi-Online adds multiplayer through an Ogre plugin loaded by Kenshi, ENet networking, and native MyGUI layouts. Players can join a host, chat, see other players, and sync world state without building the project from source.
