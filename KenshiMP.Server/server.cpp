@@ -750,8 +750,6 @@ void GameServer::HandlePositionUpdate(ConnectedPlayer& player, PacketReader& rea
     if (!reader.ReadU8(count)) return;
 
     bool playerPosUpdated = false;
-    std::vector<CharacterPosition> sharedSavePositions;
-
     for (uint8_t i = 0; i < count; i++) {
         CharacterPosition pos;
         if (!reader.ReadRaw(&pos, sizeof(pos))) break;
@@ -763,19 +761,6 @@ void GameServer::HandlePositionUpdate(ConnectedPlayer& player, PacketReader& rea
             std::abs(pos.posZ) > 1000000.f) {
             spdlog::warn("GameServer: Rejected invalid position from '{}' entity {} ({},{},{})",
                          player.name, pos.entityId, pos.posX, pos.posY, pos.posZ);
-            continue;
-        }
-
-        // Shared-save mode uses entityId 0 as the player's avatar. These
-        // positions are not backed by server entities, so relay them directly.
-        if (pos.entityId == 0) {
-            player.position = Vec3(pos.posX, pos.posY, pos.posZ);
-            player.zone = ZoneCoord::FromWorldPos(player.position);
-            playerPosUpdated = true;
-
-            if (sharedSavePositions.size() < 255) {
-                sharedSavePositions.push_back(pos);
-            }
             continue;
         }
 
@@ -796,18 +781,6 @@ void GameServer::HandlePositionUpdate(ConnectedPlayer& player, PacketReader& rea
                 playerPosUpdated = true;
             }
         }
-    }
-
-    if (!sharedSavePositions.empty()) {
-        PacketWriter sharedSaveRelay;
-        sharedSaveRelay.WriteHeader(MessageType::S2C_PositionUpdate);
-        sharedSaveRelay.WriteU32(player.id);
-        sharedSaveRelay.WriteU8(static_cast<uint8_t>(sharedSavePositions.size()));
-        for (const auto& pos : sharedSavePositions) {
-            sharedSaveRelay.WriteRaw(&pos, sizeof(pos));
-        }
-        BroadcastExcept(player.id, sharedSaveRelay.Data(), sharedSaveRelay.Size(),
-                        KMP_CHANNEL_UNRELIABLE_SEQ, 0);
     }
 }
 

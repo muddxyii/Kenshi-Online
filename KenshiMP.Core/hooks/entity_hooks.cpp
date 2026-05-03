@@ -382,50 +382,6 @@ static bool SEH_HijackNPC(void* npcChar, EntityID netId, PlayerID owner, Vec3 sp
     }
 }
 
-// Lightweight connected-mode fallback used while CharacterCreate stays in
-// passthrough. It only touches the spawn queue when a remote spawn is already
-// pending, avoiding the broad registration/faction code that crashes on every
-// runtime NPC create.
-static bool TryHijackPendingSpawnFromPassthrough(void* character) {
-    if (!character) return false;
-
-    auto& core = Core::Get();
-    if (!core.IsConnected() || !core.IsGameLoaded()) return false;
-
-    auto& spawnMgr = core.GetSpawnManager();
-    if (spawnMgr.GetPendingSpawnCount() == 0) return false;
-
-    SpawnRequest spawnReq;
-    if (!spawnMgr.PopNextSpawn(spawnReq)) return false;
-
-    bool canSpawnForPlayer = false;
-    {
-        std::lock_guard lock(s_spawnsPerPlayerMutex);
-        canSpawnForPlayer = s_spawnsPerPlayer[spawnReq.owner] < MAX_SPAWNS_PER_PLAYER;
-    }
-
-    if (!canSpawnForPlayer) {
-        spawnMgr.RequeueSpawn(spawnReq);
-        return false;
-    }
-
-    if (SEH_HijackNPC(character, spawnReq.netId, spawnReq.owner, spawnReq.position)) {
-        s_inPlaceSpawnCount.fetch_add(1);
-        s_lastInPlaceSpawnTime = std::chrono::steady_clock::now();
-        {
-            std::lock_guard lock(s_spawnsPerPlayerMutex);
-            s_spawnsPerPlayer[spawnReq.owner]++;
-        }
-        return true;
-    }
-
-    spawnReq.retryCount++;
-    if (spawnReq.retryCount < MAX_SPAWN_RETRIES) {
-        spawnMgr.RequeueSpawn(spawnReq);
-    }
-    return false;
-}
-
 void SetDirectSpawnBypass(bool bypass) {
     s_directSpawnBypass.store(bypass, std::memory_order_release);
 }
@@ -702,8 +658,6 @@ static void* __fastcall Hook_CharacterCreate(void* factory, void* templateData) 
                 }
             }
         }
-
-        TryHijackPendingSpawnFromPassthrough(r);
 
         s_hookDepth--;
         return r;
@@ -1306,12 +1260,22 @@ void ResumeForNetwork() {
     s_factionScanCount = 0;
     s_factionVotingDone = false;
 
-    // Keep CharacterCreate in lightweight passthrough mode. Shared-save sync
-    // does not need runtime NPC spawn registration, and the full hook body is
-    // crash-prone when joining an already-loaded world.
-    s_loadingPassthrough.store(true, std::memory_order_release);
+    // Disable loading passthrough — full hook body active for multiplayer.
+    // At this point loading is complete — only single/few runtime spawns will
+    // trigger the hook (new zone NPCs, remote player injection). MovRaxRsp
+    // handles single calls fine; it's only the 130+ loading burst that uses
+    // the lightweight passthrough path.
+    s_loadingPassthrough.store(false, std::memory_order_release);
 
-    spdlog::info("entity_hooks: ResumeForNetwork — CharacterCreate remains in lightweight passthrough "
+    // Ensure hook is enabled (should already be, but re-enable in case
+    // the loading capture code path disabled it via HookManager::Disable)
+    if (HookManager::Get().Enable("CharacterCreate")) {
+        spdlog::info("entity_hooks: ResumeForNetwork — CharacterCreate hook ENABLED (full mode)");
+    } else {
+        spdlog::warn("entity_hooks: ResumeForNetwork — CharacterCreate Enable() returned false");
+    }
+
+    spdlog::info("entity_hooks: ResumeForNetwork — hook active for runtime spawns "
                  "(earlyFaction=0x{:X}, fallback=0x{:X})", earlyFac,
                  s_fallbackFaction.load(std::memory_order_relaxed));
 }

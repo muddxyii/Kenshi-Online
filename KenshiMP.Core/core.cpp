@@ -1356,9 +1356,8 @@ void Core::PollForGameLoad() {
         m_nativeHud.LogStep("GAME", "Loading complete (" + std::to_string(loadingCreates) +
                             " creates, quiet for " + std::to_string(timeSinceCreate) + "ms)");
 
-        // Keep CharacterCreate in lightweight passthrough mode. The shared-save
-        // path uses character tracking and does not need full spawn registration.
-        entity_hooks::SetLoadingPassthrough(true);
+        // Disable loading passthrough before OnGameLoaded enables full hook
+        entity_hooks::SetLoadingPassthrough(false);
 
         OnGameLoaded();
     } else if (loadingCreates > 0) {
@@ -1386,13 +1385,13 @@ void Core::PollForGameLoad() {
                              "after {} polls with no create events", charCount, s_noCharCount);
                 m_nativeHud.LogStep("GAME", "Game loaded (CharacterIterator fallback, " +
                                     std::to_string(charCount) + " chars)");
-                entity_hooks::SetLoadingPassthrough(true);
+                entity_hooks::SetLoadingPassthrough(false);
                 OnGameLoaded();
             } else if (s_noCharCount >= 60) {
                 spdlog::warn("Core::PollForGameLoad — ultimate fallback: 120s with valid globals, "
                              "no creates, no chars. Assuming loaded.");
                 m_nativeHud.LogStep("GAME", "Game assumed loaded (ultimate fallback after 120s)");
-                entity_hooks::SetLoadingPassthrough(true);
+                entity_hooks::SetLoadingPassthrough(false);
                 OnGameLoaded();
             }
         }
@@ -1566,10 +1565,10 @@ void Core::OnGameLoaded() {
         }
     }
 
-    // Keep loading passthrough enabled. Runtime NPC CharacterCreate calls still
-    // update lightweight timing/capture state, but avoid the full hook body that
-    // crashes when connecting after a world is already loaded.
-    entity_hooks::SetLoadingPassthrough(true);
+    // Disable loading passthrough — CharacterCreate hook now runs full body.
+    // Loading is complete, so runtime NPC spawns (single/few at a time) go through
+    // the full hook for entity registration, faction capture, and NPC hijack.
+    entity_hooks::SetLoadingPassthrough(false);
 
     // Log mod template characters captured during loading passthrough
     {
@@ -1581,8 +1580,15 @@ void Core::OnGameLoaded() {
         }
     }
 
-    spdlog::info("Core::OnGameLoaded — CharacterCreate kept in lightweight passthrough mode");
-    m_nativeHud.LogStep("HOOK", "CharacterCreate passthrough (shared-save safe)");
+    // Ensure CharacterCreate hook is enabled (it should already be from install,
+    // but re-enable in case it was disabled by the loading capture code path).
+    if (HookManager::Get().Enable("CharacterCreate")) {
+        spdlog::info("Core::OnGameLoaded — CharacterCreate hook ENABLED (full mode for runtime spawns)");
+        m_nativeHud.LogStep("HOOK", "CharacterCreate enabled (post-load)");
+    } else {
+        spdlog::warn("Core::OnGameLoaded — CharacterCreate Enable() returned false");
+        m_nativeHud.LogStep("WARN", "CharacterCreate enable failed");
+    }
 
     // ═══ DUMP ALL FUNCTIONS AND OFFSETS ═══
     {
