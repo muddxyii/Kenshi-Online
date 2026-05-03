@@ -1,5 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
+set "REPO_DIR=%~dp0"
 
 echo.
 echo  ========================================
@@ -96,6 +97,14 @@ if errorlevel 1 (
     goto :fail
 )
 
+:: Install the gameplay mod used by shared-save character templates.
+echo.
+echo [DEPLOY] Installing kenshi-online.mod...
+call :install_mod_assets
+if errorlevel 1 (
+    echo [WARN] kenshi-online.mod was not installed. Shared-save character sync may stall.
+)
+
 :: Run tests
 echo.
 echo [3/3] Running unit tests...
@@ -172,6 +181,36 @@ for %%D in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
     if defined KENSHI_DIR exit /b 0
 )
 exit /b 1
+
+:install_mod_assets
+set "MOD_SRC=%REPO_DIR%dist\kenshi-online.mod"
+set "DATA_DIR=%KENSHI_DIR%\data"
+set "MOD_DIR=%KENSHI_DIR%\mods\kenshi-online"
+set "MOD_LIST=%DATA_DIR%\__mods.list"
+
+if not exist "%MOD_SRC%" (
+    echo [WARN] Missing %MOD_SRC%
+    exit /b 1
+)
+
+if not exist "%DATA_DIR%" mkdir "%DATA_DIR%" >nul 2>&1
+if errorlevel 1 exit /b 1
+
+if not exist "%MOD_DIR%" mkdir "%MOD_DIR%" >nul 2>&1
+if errorlevel 1 exit /b 1
+
+copy /Y "%MOD_SRC%" "%DATA_DIR%\kenshi-online.mod" >nul
+if errorlevel 1 exit /b 1
+
+copy /Y "%MOD_SRC%" "%MOD_DIR%\kenshi-online.mod" >nul
+if errorlevel 1 exit /b 1
+
+if not exist "%MOD_LIST%" type nul > "%MOD_LIST%"
+findstr /X /C:"kenshi-online" "%MOD_LIST%" >nul 2>&1
+if errorlevel 1 echo kenshi-online>> "%MOD_LIST%"
+
+echo [OK] Installed kenshi-online.mod and enabled it in __mods.list
+exit /b 0
 
 :fail
 echo.

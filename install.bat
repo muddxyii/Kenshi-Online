@@ -4,17 +4,34 @@ setlocal
 :: KenshiMP Install - Copies built files and configures Kenshi to load the Ogre plugin.
 :: Run this after building (cmake --build build --config Release).
 
-set KENSHI_DIR=%~dp0..
-set BUILD_DLL=%~dp0build\bin\Release\KenshiMP.Core.dll
-set BUILD_SERVER=%~dp0build\bin\Release\KenshiMP.Server.exe
+if not "%~1"=="" (
+    set "KENSHI_DIR=%~1"
+) else if defined KENSHI_DIR (
+    set "KENSHI_DIR=%KENSHI_DIR%"
+) else (
+    set "KENSHI_DIR=%~dp0.."
+)
+for %%I in ("%KENSHI_DIR%") do set "KENSHI_DIR=%%~fI"
+
+set "BUILD_DLL=%~dp0build\bin\Release\KenshiMP.Core.dll"
+set "BUILD_SERVER=%~dp0build\bin\Release\KenshiMP.Server.exe"
+set "MOD_SRC=%~dp0dist\kenshi-online.mod"
 set PLUGINS_CFG=%KENSHI_DIR%\Plugins_x64.cfg
 set MAIN_MENU_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MainMenu.layout
 set MP_PANEL_LAYOUT=%KENSHI_DIR%\data\gui\layout\Kenshi_MultiplayerPanel.layout
+set MOD_LIST=%KENSHI_DIR%\data\__mods.list
 
 echo ============================================
 echo  KenshiMP Install
 echo ============================================
 echo.
+
+if not exist "%KENSHI_DIR%\kenshi_x64.exe" (
+    echo [!] Kenshi not found at: %KENSHI_DIR%
+    echo     Run install.bat with your Kenshi folder:
+    echo     install.bat "D:\SteamLibrary\steamapps\common\Kenshi"
+    goto :done
+)
 
 :: 1. Copy DLL to Kenshi root
 if exist "%BUILD_DLL%" (
@@ -66,8 +83,24 @@ if exist "%MP_PANEL_LAYOUT%" (
     echo     It should be at: data\gui\layout\Kenshi_MultiplayerPanel.layout
 )
 
+:: 6. Install and enable the gameplay mod used for shared-save multiplayer characters.
+if exist "%MOD_SRC%" (
+    if not exist "%KENSHI_DIR%\mods\kenshi-online" mkdir "%KENSHI_DIR%\mods\kenshi-online" >nul 2>&1
+    copy /Y "%MOD_SRC%" "%KENSHI_DIR%\data\kenshi-online.mod" >nul 2>&1
+    copy /Y "%MOD_SRC%" "%KENSHI_DIR%\mods\kenshi-online\kenshi-online.mod" >nul 2>&1
+
+    if not exist "%MOD_LIST%" type nul > "%MOD_LIST%"
+    findstr /X /C:"kenshi-online" "%MOD_LIST%" >nul 2>&1
+    if errorlevel 1 echo kenshi-online>> "%MOD_LIST%"
+
+    echo [OK] Installed kenshi-online.mod and enabled it in __mods.list
+) else (
+    echo [!] kenshi-online.mod not found at: %MOD_SRC%
+)
+
 echo.
 echo ============================================
 echo  Done. Launch Kenshi to play!
 echo ============================================
+:done
 pause
