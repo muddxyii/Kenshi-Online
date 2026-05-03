@@ -260,6 +260,17 @@ void GameServer::HandleDisconnect(ENetPeer* peer) {
             m_savedPlayers[player->name] = std::move(sp);
             spdlog::info("GameServer: Preserved {} entities for player '{}' (reconnectable)",
                          ownedIds.size(), player->name);
+
+            // Remaining clients should remove the disconnected player's live
+            // proxies even though the server keeps the entities for reclaim.
+            for (EntityID eid : ownedIds) {
+                PacketWriter despawnWriter;
+                despawnWriter.WriteHeader(MessageType::S2C_EntityDespawn);
+                despawnWriter.WriteU32(eid);
+                despawnWriter.WriteU8(0); // reason: owner disconnected
+                BroadcastExcept(player->id, despawnWriter.Data(), despawnWriter.Size(),
+                                KMP_CHANNEL_RELIABLE_ORDERED, ENET_PACKET_FLAG_RELIABLE);
+            }
         }
 
         // Notify others that player left
@@ -943,8 +954,8 @@ void GameServer::HandleBuildRequest(ConnectedPlayer& player, PacketReader& reade
     placed.compressedQuat = msg.compressedQuat;
     placed.builderId = player.id;
     writer.WriteRaw(&placed, sizeof(placed));
-    BroadcastExcept(player.id, writer.Data(), writer.Size(),
-                    KMP_CHANNEL_RELIABLE_ORDERED, ENET_PACKET_FLAG_RELIABLE);
+    Broadcast(writer.Data(), writer.Size(),
+              KMP_CHANNEL_RELIABLE_ORDERED, ENET_PACKET_FLAG_RELIABLE);
 
     spdlog::info("GameServer: Player '{}' placed building {} at ({:.1f}, {:.1f}, {:.1f})",
                  player.name, buildId, msg.posX, msg.posY, msg.posZ);
